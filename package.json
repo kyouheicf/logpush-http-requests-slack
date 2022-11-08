@@ -1,0 +1,22 @@
+{
+  "name": "logpush-http-requests-slack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kyouheicf/logpush-http-requests-slack.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kyouheicf/logpush-http-requests-slack/issues"
+  },
+  "homepage": "https://github.com/kyouheicf/logpush-http-requests-slack#readme",
+  "dependencies": {
+    "fflate": "^0.7.4"
+  }
+}
