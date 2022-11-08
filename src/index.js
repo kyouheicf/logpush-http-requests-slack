@@ -2,8 +2,6 @@ import { decompressSync } from 'fflate';
 
 export default {
 	async fetch(request, env, ctx) {
-		const botAccessToken = env.SLACK_BOT_ACCESS_TOKEN;
-		const botAccessChannel = env.SLACK_BOT_ACCESS_CHANNEL;
 		const jstNow = new Date(Date.now() + ((new Date().getTimezoneOffset() + (9 * 60)) * 60 * 1000)).toLocaleString({ timeZone: 'Asia/Tokyo' });
 
 		const massiveFileBuf = await request.arrayBuffer();
@@ -15,7 +13,7 @@ export default {
 		//console.log(`compressed decode =${enc.decode(compressed)}`);
 		if (enc.decode(compressed).trim() == '{"content":"test","filename":"test.txt"}') {
 			//console.log('aaa')
-			var json = '{"content":"test","filename":"test.txt"}';
+			var json = '[{"content":"test","filename":"test.txt"}]';
 			//console.log(`json = ${json}`);
 		} else {
 			//console.log('bbb')
@@ -28,24 +26,60 @@ export default {
 
 		const jsonobj = JSON.parse(json);
 		//console.log(`jsonobj = ${jsonobj}`);
-		const jsonfmt = JSON.stringify(jsonobj, null, 2);
-		//console.log(`jsonfmt = ${jsonfmt}`);
+
+		const responses = await Promise.all(jsonobj.map(async jsonelem => {
+			console.log(jsonelem)
+			const jsonfmt = JSON.stringify(jsonelem, null, 2);
+			console.log(`jsonfmt = ${jsonfmt}`);
+
+			const botAccessChannel = env.SLACK_BOT_ACCESS_CHANNEL;
+			const payload = {
+				channel: botAccessChannel,
+				attachments: [
+					{
+						title: "Cloudflare Workers",
+						text: `This is HTTP Requests Logpush POST \`\`\`${jsonfmt}\`\`\` `,
+						author_name: "logpush-http-requests-slack",
+						color: "#00FF00",
+					},
+				],
+			};
+			const botAccessToken = env.SLACK_BOT_ACCESS_TOKEN;
+			fetch('https://slack.com/api/chat.postMessage', {
+				method: "POST",
+				body: JSON.stringify(payload),
+				headers: {
+					"Content-Type": "application/json; charset=utf-8",
+					"Content-Length": payload.length,
+					Authorization: `Bearer ${botAccessToken}`,
+					Accept: "application/json",
+				},
+			});
+		}))
+
+		async function gatherResponse(response) {
+			const { headers } = response;
+			const contentType = headers.get('content-type') || '';
+			if (contentType.includes('application/json')) {
+				return JSON.stringify(await response.json());
+			} else if (contentType.includes('application/text')) {
+				return response.text();
+			} else if (contentType.includes('text/html')) {
+				return response.text();
+			} else {
+				return response.text();
+			}
+		}
+		const results = await Promise.all(responses.map(async response => { gatherResponse(response) }));
+		const init = {
+			headers: {
+				'content-type': 'application/json;charset=UTF-8',
+			},
+		};
+		return new Response(results.join(), init);
 
 		/*
-		const slackUrl = 'https://slack.com/api/chat.postMessage';
-		const payload = {
-			channel: botAccessChannel,
-			attachments: [
-				{
-					title: "Cloudflare Workers",
-					text: `This is HTTP Requests Logpush POST \`\`\`${jsonfmt}\`\`\` `,
-					author_name: "logpush-http-requests-slack",
-					color: "#00FF00",
-				},
-			],
-		};
-		
-		return await fetch(slackUrl, {
+		return await fetch('https://slack.com/api/chat.postMessage', {
 			method: "POST",
 			body: JSON.stringify(payload),
 			headers: {
@@ -57,7 +91,7 @@ export default {
 		});
 		*/
 
-		const slackUrl = 'https://slack.com/api/files.upload';
+		/*
 		const data = {
 			channels: botAccessChannel,
 			filename: 'logpush-http-requests-slack.json',
@@ -72,12 +106,13 @@ export default {
 			formData.append(key, data[key]);
 		}
 
-		return await fetch(slackUrl, {
+		return await fetch('https://slack.com/api/files.upload', {
 			method: "POST",
 			body: formData,
 			headers: {
 				Authorization: `Bearer ${botAccessToken}`,
 			},
 		});
+		*/
 	},
 };
