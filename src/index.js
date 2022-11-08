@@ -37,8 +37,8 @@ export default {
 				channel: botAccessChannel,
 				attachments: [
 					{
-						title: "Cloudflare Workers",
-						text: `This is HTTP Requests Logpush POST \`\`\`${jsonfmt}\`\`\` `,
+						title: "Cloudflare Workers - HTTP Requests Logpush POST",
+						text: `${jstNow} JST (${new Date()}) \`\`\`${jsonfmt}\`\`\` `,
 						author_name: "logpush-http-requests-slack",
 						color: "#00FF00",
 					},
