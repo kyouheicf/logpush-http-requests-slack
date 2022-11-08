@@ -1,0 +1,9 @@
+name = "logpush-http-requests-slack"
+main = "src/index.js"
+compatibility_date = "2022-11-06"
+
+[vars]
+# The necessary secrets are:
+# - SLACK_BOT_ACCESS_TOKEN
+# - SLACK_BOT_ACCESS_CHANNEL
+# Run `echo <VALUE> | wrangler secret put <NAME>` for each of these
