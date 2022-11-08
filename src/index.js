@@ -2,11 +2,21 @@ import { decompressSync } from 'fflate';
 
 export default {
 	async fetch(request, env, ctx) {
-		const jstNow = new Date(Date.now() + ((new Date().getTimezoneOffset() + (9 * 60)) * 60 * 1000)).toLocaleString({ timeZone: 'Asia/Tokyo' });
-
 		const massiveFileBuf = await request.arrayBuffer();
 		//console.log(massiveFileBuf);
 		var enc = new TextDecoder("utf-8");
+
+		const PRESHARED_AUTH_HEADER_KEY = 'X-Logpush-Auth';
+		const PRESHARED_AUTH_HEADER_VALUE = 'mypresharedkey';
+
+		const psk = request.headers.get(PRESHARED_AUTH_HEADER_KEY);
+		//console.log(psk)
+
+		if (psk !== PRESHARED_AUTH_HEADER_VALUE) {
+			return new Response('Sorry, you have supplied an invalid key.', {
+				status: 403,
+			});
+		}
 
 		const compressed = new Uint8Array(massiveFileBuf);
 		//console.log(`compressed = ${compressed}`);
@@ -28,11 +38,12 @@ export default {
 		//console.log(`jsonobj = ${jsonobj}`);
 
 		const responses = await Promise.all(jsonobj.map(async jsonelem => {
-			console.log(jsonelem)
+			//console.log(jsonelem)
 			const jsonfmt = JSON.stringify(jsonelem, null, 2);
-			console.log(`jsonfmt = ${jsonfmt}`);
+			//console.log(`jsonfmt = ${jsonfmt}`);
 
 			const botAccessChannel = env.SLACK_BOT_ACCESS_CHANNEL;
+			const jstNow = new Date(Date.now() + ((new Date().getTimezoneOffset() + (9 * 60)) * 60 * 1000)).toLocaleString({ timeZone: 'Asia/Tokyo' });
 			const payload = {
 				channel: botAccessChannel,
 				attachments: [
