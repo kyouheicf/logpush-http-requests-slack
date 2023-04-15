@@ -48,9 +48,9 @@ export default {
 				channel: botAccessChannel,
 				attachments: [
 					{
-						title: "Cloudflare Workers - HTTP Requests Logpush POST",
+						title: "Cloudflare Workers - Logpush POST",
 						text: `${jstNow} JST (${new Date()}) \`\`\`${jsonfmt}\`\`\` `,
-						author_name: "logpush-http-requests-slack",
+						author_name: "logpush-slack",
 						color: "#00FF00",
 					},
 				],
