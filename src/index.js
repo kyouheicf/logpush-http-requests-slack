@@ -2,45 +2,49 @@ import { decompressSync } from 'fflate';
 
 export default {
 	async fetch(request, env, ctx) {
-		const massiveFileBuf = await request.arrayBuffer();
-		//console.log(massiveFileBuf);
-		var enc = new TextDecoder("utf-8");
+		const buf = await request.arrayBuffer();
 
 		const PRESHARED_AUTH_HEADER_KEY = 'X-Logpush-Auth';
 		const PRESHARED_AUTH_HEADER_VALUE = 'mypresharedkey';
 
 		const psk = request.headers.get(PRESHARED_AUTH_HEADER_KEY);
 		//console.log(psk)
+		const contentEncoding = request.headers.get('content-encoding')
+		console.log(`content-encoding === ${contentEncoding}`)
 
 		if (psk !== PRESHARED_AUTH_HEADER_VALUE) {
 			return new Response('Sorry, you have supplied an invalid key.', {
 				status: 403,
 			});
 		}
+		// Decompress gzipped logpush body to json
+		const compressed = new Uint8Array(buf);
+		const enc = new TextDecoder("utf-8");
 
-		const compressed = new Uint8Array(massiveFileBuf);
 		//console.log(`compressed = ${compressed}`);
 		//console.log(`compressed decode =${enc.decode(compressed)}`);
-		if (enc.decode(compressed).trim() == '{"content":"test","filename":"test.txt"}') {
+		//console.log(`compressed decode =${enc.decode(compressed).trim()}`);
+		const decompressed = decompressSync(compressed);
+		//console.log(`decompressed = ${decompressed}`);
+		console.log(`decompressed decode =${enc.decode(decompressed)}`);
+
+		if (enc.decode(decompressed).trim() == '{"content":"test"}') {
 			//console.log('aaa')
-			var json = '[{"content":"test","filename":"test.txt"}]';
-			//console.log(`json = ${json}`);
+			var json = '[{"content":"test"}]';
+			console.log(`json = ${json}`);
 		} else {
 			//console.log('bbb')
-			const decompressed = decompressSync(compressed);
-			//console.log(`decompressed = ${decompressed}`);
-			//console.log(`decompressed decode =${enc.decode(decompressed)}`);
 			var json = '[' + enc.decode(decompressed).trim().replace(/\n/g, ',') + ']';
-			//console.log(`json = ${json}`);
+			console.log(`json = ${json}`);
 		}
 
 		const jsonobj = JSON.parse(json);
 		//console.log(`jsonobj = ${jsonobj}`);
 
-		const responses = await Promise.all(jsonobj.map(async jsonelem => {
+		const responses = await Promise.all(jsonobj.map(jsonelem => {
 			//console.log(jsonelem)
 			const jsonfmt = JSON.stringify(jsonelem, null, 2);
-			//console.log(`jsonfmt = ${jsonfmt}`);
+			console.log(`jsonfmt = ${jsonfmt}`);
 
 			const botAccessChannel = env.SLACK_BOT_ACCESS_CHANNEL;
 			const jstNow = new Date(Date.now() + ((new Date().getTimezoneOffset() + (9 * 60)) * 60 * 1000)).toLocaleString({ timeZone: 'Asia/Tokyo' });
@@ -55,7 +59,9 @@ export default {
 					},
 				],
 			};
+			//console.log(`payload === ${JSON.stringify(payload, null, 2)}`)
 			const botAccessToken = env.SLACK_BOT_ACCESS_TOKEN;
+			//console.log(`botAccessToken === ${botAccessToken}`)
 			fetch('https://slack.com/api/chat.postMessage', {
 				method: "POST",
 				body: JSON.stringify(payload),
@@ -81,7 +87,7 @@ export default {
 				return response.text();
 			}
 		}
-		const results = await Promise.all(responses.map(async response => { gatherResponse(response) }));
+		const results = await Promise.all(responses.map(response => { gatherResponse(response) }));
 		const init = {
 			headers: {
 				'content-type': 'application/json;charset=UTF-8',
